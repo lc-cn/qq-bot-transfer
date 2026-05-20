@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Supabase：db push 用直连；本地开发可与 DATABASE_URL 相同
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  githubId  String   @unique
+  email     String?
+  name      String?
+  image     String?
+  bots      Bot[]
+  createdAt DateTime @default(now())
+}
+
+model Bot {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  qq         String
+  appId      String         @unique
+  secretEnc  String
+  events     WebhookEvent[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model WebhookEvent {
+  id         String   @id @default(cuid())
+  botId      String
+  bot        Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  op         Int?
+  eventType  String?
+  payload    Json
+  receivedAt DateTime @default(now())
+
+  @@index([botId, receivedAt(sort: Desc)])
+}
