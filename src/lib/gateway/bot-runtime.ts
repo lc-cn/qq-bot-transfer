@@ -110,8 +110,6 @@ export class BotRuntime {
     };
     if (payload.id) msg.id = payload.id;
     if (payload.s !== undefined) msg.s = payload.s;
-    const token = this.tokenMgr.token();
-    if (token) msg.access_token = token;
     this.broadcast(JSON.stringify(msg));
   }
 

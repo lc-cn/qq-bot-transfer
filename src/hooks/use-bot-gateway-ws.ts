@@ -22,17 +22,16 @@ type WsMessage = {
   t?: string;
   d?: unknown;
   s?: number;
-  access_token?: string;
+  id?: string;
 };
 
 function toEventRow(msg: WsMessage): LiveGatewayEvent | null {
   if (msg.op !== OP_DISPATCH || !msg.t || msg.t === "READY") return null;
-  const { access_token: _at, ...rest } = msg as WsMessage & { id?: string };
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     op: msg.op,
     eventType: msg.t,
-    payload: rest,
+    payload: msg,
     receivedAt: new Date().toISOString(),
   };
 }
@@ -80,48 +79,26 @@ export function useBotGatewayWs(
       setStatus("connecting");
       setError(null);
 
-      const tokenRes = await fetch(
-        `/api/bots/${encodeURIComponent(appId)}/access-token`,
-        { method: "POST" },
+      const connectRes = await fetch(
+        `/api/bots/${encodeURIComponent(appId)}/connect`,
       );
-      if (!tokenRes.ok) {
+      if (!connectRes.ok) {
         if (!closed) {
           setStatus("error");
-          setError("getAppAccessToken 失败，请确认 Bot 已配置且已登录");
+          setError("获取连接信息失败，请确认 Bot 已配置且已登录");
         }
         return;
       }
       if (closed) return;
 
-      const { access_token } = (await tokenRes.json()) as {
+      const { access_token, url: wsUrl } = (await connectRes.json()) as {
         access_token?: string;
+        url?: string;
       };
-      if (!access_token) {
+      if (!access_token || !wsUrl) {
         if (!closed) {
           setStatus("error");
-          setError("未返回 access_token");
-        }
-        return;
-      }
-
-      const gatewayRes = await fetch(
-        `/api/bots/${encodeURIComponent(appId)}/gateway`,
-        { headers: { Authorization: `QQBot ${access_token}` } },
-      );
-      if (!gatewayRes.ok) {
-        if (!closed) {
-          setStatus("error");
-          setError("GET /gateway 失败");
-        }
-        return;
-      }
-      if (closed) return;
-
-      const { url: wsUrl } = (await gatewayRes.json()) as { url?: string };
-      if (!wsUrl) {
-        if (!closed) {
-          setStatus("error");
-          setError("gateway 未返回 WebSocket url");
+          setError("未返回 access_token 或 WebSocket url");
         }
         return;
       }

@@ -12,7 +12,6 @@ export type AuthProxyResult =
   | { status: 200; body: string; json: false };
 
 export async function getAuthProxyResponse(
-  appIdFromPath: string,
   rawBody: string,
 ): Promise<AuthProxyResult> {
   let body: { appId?: string; clientSecret?: string };
@@ -22,18 +21,19 @@ export async function getAuthProxyResponse(
     return { status: 400, body: { msg: "invalid request body" } };
   }
 
-  if (body.appId && body.appId !== appIdFromPath) {
-    return { status: 400, body: { msg: "appId mismatch with path" } };
+  const appId = body.appId;
+  if (!appId) {
+    return { status: 400, body: { msg: "appId required in request body" } };
   }
 
-  const dbBot = await prisma.bot.findUnique({ where: { appId: appIdFromPath } });
+  const dbBot = await prisma.bot.findUnique({ where: { appId } });
   if (!dbBot) {
     return { status: 404, body: { msg: "bot not found" } };
   }
 
   const secret = body.clientSecret ?? decryptSecret(dbBot.secretEnc);
   const proxyBody = JSON.stringify({
-    appId: appIdFromPath,
+    appId,
     clientSecret: secret,
   });
 
@@ -65,13 +65,13 @@ export async function getAuthProxyResponse(
       : (authResp.expires_in ?? 7200);
 
   await globalHub.registerFromAuth(
-    appIdFromPath,
+    appId,
     dbBot.id,
     secret,
     authResp.access_token,
     expiresIn,
   );
 
-  console.log(`[auth-proxy] bot=${appIdFromPath} registered`);
+  console.log(`[auth-proxy] bot=${appId} registered`);
   return { status: 200, body: respBody, json: false };
 }

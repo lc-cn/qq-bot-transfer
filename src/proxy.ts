@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { originFromRequest } from "@/lib/auth/resolve-request-url";
+import { originFromRequest } from "@/lib/http-origin";
 
 const PUBLIC_PREFIXES = ["/login", "/api/auth"];
 
@@ -9,7 +9,7 @@ const GATEWAY_PREFIXES = [
   "/gateway/",
   "/gateway/bot/",
   "/websocket/",
-  "/app/getAppAccessToken/",
+  "/app/getAppAccessToken",
 ];
 
 function isPublic(pathname: string): boolean {
@@ -25,6 +25,7 @@ function isPublic(pathname: string): boolean {
   return false;
 }
 
+/** @see https://nextjs.org/docs/app/api-reference/file-conventions/proxy */
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   if (isPublic(pathname)) return;

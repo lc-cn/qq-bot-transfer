@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# VPS：仅安装依赖 + 构建；进程由 1Panel「网站 → 运行环境」托管（不用 PM2 / Docker）
+# VPS：安装依赖 + 迁移 + 构建；进程由 1Panel「网站 → 运行环境」托管
 set -euo pipefail
 
-DEPLOY_PATH="${DEPLOY_PATH:-/opt/qq-bot-transfer}"
+DEPLOY_PATH="${DEPLOY_PATH:-/opt/1panel/www/sites/bots.liucl.cn/index}"
 cd "$DEPLOY_PATH"
 
 if [[ ! -f .env ]]; then
-  echo "Missing .env in $DEPLOY_PATH — copy from deploy/1panel.env.example" >&2
+  echo "Missing .env in $DEPLOY_PATH — copy from .env.production or deploy/1panel.env.example" >&2
   exit 1
 fi
 
@@ -17,6 +17,9 @@ fi
 
 echo "==> pnpm install"
 pnpm install --frozen-lockfile 2>/dev/null || pnpm install
+
+echo "==> prisma migrate deploy"
+pnpm exec prisma migrate deploy
 
 echo "==> prisma generate"
 pnpm exec prisma generate

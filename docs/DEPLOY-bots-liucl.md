@@ -13,16 +13,14 @@
 
 ```bash
 # 示例路径
-cd /opt/qq-bot-transfer   # 或你克隆的目录
-git pull origin main
+cd /opt/1panel/www/sites/bots.liucl.cn/index
+git pull origin master
 
 # 用生产配置（勿提交到 git）
 cp .env.production .env
 
-# 首次：表结构（你当前用本机 Postgres localhost:5432）
+# 首次：迁移 + 构建
 pnpm install
-pnpm exec prisma generate
-pnpm db:push
 bash scripts/deploy-node-on-server.sh
 ```
 
@@ -36,7 +34,7 @@ bash scripts/deploy-node-on-server.sh
 
 | 项 | 值 |
 |----|-----|
-| 运行目录 | `/opt/qq-bot-transfer`（你的实际路径） |
+| 运行目录 | `/opt/1panel/www/sites/bots.liucl.cn/index` |
 | Node | 22 |
 | 启动命令 | `bash scripts/1panel-start.sh` |
 
@@ -81,8 +79,16 @@ QQ 配置 Webhook：`https://bots.liucl.cn/webhook/{appId}`
 
 ## 五、GitHub Actions（可选）
 
-仓库 Settings → Secrets：`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_PATH`。  
-推 `main` 后 SSH 执行 `deploy-node-on-server.sh`，再到 1Panel **重启** 运行环境。
+仓库 Settings → Secrets：
+
+| Secret | 值 |
+|--------|-----|
+| `DEPLOY_HOST` | 服务器 IP |
+| `DEPLOY_USER` | SSH 用户 |
+| `DEPLOY_SSH_KEY` | 部署私钥 |
+| `DEPLOY_PATH` | `/opt/1panel/www/sites/bots.liucl.cn/index` |
+
+推 `master` 后 Actions 自动 SSH 构建；再到 1Panel **重启** 运行环境。详见 [DEPLOY-GITHUB-ACTIONS.md](./DEPLOY-GITHUB-ACTIONS.md)。
 
 ---
 

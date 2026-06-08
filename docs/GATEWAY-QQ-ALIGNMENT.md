@@ -10,7 +10,7 @@
 |------|--------|------|
 | `GET /gateway` | `GET /gateway/{appId}` | 仅返回 `{ url }`（与 [qq-bot](https://github.com/lemonade-lab/qq-bot) 一致），`url` 指向本网关 `wss://…/websocket/{appId}` |
 | `GET /gateway/bot` | `GET /gateway/bot/{appId}` | **代理**官方接口：`shards`、`session_start_limit` 透传 QQ 返回值，只把 `url` 换成本网关地址 |
-| `POST /app/getAppAccessToken` | `POST /app/getAppAccessToken/{appId}` | 代理官方，并注册 Bot |
+| `POST /app/getAppAccessToken` | `POST /app/getAppAccessToken`（body 含 `appId`） | 与官方路径一致 |
 
 ## WebSocket 连接流程
 
@@ -18,9 +18,9 @@
 |------|------|--------|------|
 | Op 10 Hello | `heartbeat_interval` | 同 | ✅ |
 | Op 2 Identify | `token`、`intents`、`shard`、`properties` | 校验 `token`；接受 `shard`（默认 `[0,1]`）；`intents` / `properties` 不用于过滤（事件来自 Webhook，非 QQ 推送通道） | ⚠️ 部分 |
-| Op 0 READY | `version`、`session_id`、`user`、`shard` | `version`、`session_id`、`shard`、`app_id`（qq-bot 兼容）；`user.id` 为 Bot QQ；`user.username` 为 Bot 名称 | ⚠️ 部分 |
+| Op 0 READY | `version`、`session_id`、`user`、`shard` | `version`、`session_id`、`shard`、`app_id`；`user.id` 为 Bot QQ；`user.username` 为 Bot 名称 | ⚠️ 部分 |
 | Op 1 心跳 | `d` 为最新序列号 `s` | 接收并记录客户端上报的 `d`；回 Op 11 | ✅ |
-| Op 0 事件 | `id`、`op`、`d`、`s`、`t` | Webhook 转发时保留 `id`、`s`、`t`、`d`；另附 `access_token`（qq-bot 行为） | ✅ |
+| Op 0 事件 | `id`、`op`、`d`、`s`、`t` | Webhook 转发时保留 `id`、`s`、`t`、`d` | ✅ |
 | Op 6 Resume | 断线补发遗漏事件 | **不支持**，返回 Op 9 说明原因（无 QQ 会话事件缓存，无法补发） | ❌ 诚实拒绝 |
 | Op 7 Reconnect | 服务端要求重连 | 未主动下发 | — |
 | 分片 `shard` | QQ 按 guild 哈希分片 | 单 Webhook 入口，**不做**官方分片负载；`shard` 仅回显客户端 Identify | ❌ 架构不同 |

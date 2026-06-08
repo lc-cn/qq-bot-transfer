@@ -140,7 +140,7 @@ export function EventsTable({ appId }: { appId: string }) {
         </div>
         {live && wsStatus === "connected" && (
           <span className="text-xs text-zinc-500">
-            SDK 流程：access-token → GET /gateway → {`/websocket/${appId}`}
+            已连接：GET /api/bots/connect → {`/websocket/${appId}`}
           </span>
         )}
       </div>

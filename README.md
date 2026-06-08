@@ -51,7 +51,7 @@ pnpm dev
 | 方法 | 路径 |
 |------|------|
 | POST | `/webhook/{appId}` |
-| POST | `/app/getAppAccessToken/{appId}` |
+| POST | `/app/getAppAccessToken` |
 | GET | `/gateway/{appId}` |
 | GET | `/gateway/bot/{appId}` |
 | WS | `/websocket/{appId}` |
@@ -65,8 +65,9 @@ pnpm dev
 const BASE = "https://<你的域名>";
 const APP_ID = "1234567890";
 
-const BOTS_API_URL = `${BASE}/app/getAppAccessToken/${APP_ID}`;
+const BOTS_API_URL = `${BASE}/app/getAppAccessToken`;
 const API_URL = `${BASE}/gateway/${APP_ID}`;
+// getAppAccessToken 的 POST body 与官方相同：{ appId: APP_ID, clientSecret: "..." }
 ```
 
 `GET /gateway/{appId}` 与 [qq-bot](https://github.com/lemonade-lab/qq-bot) 相同，仅返回 `{ "url": "..." }`。`GET /gateway/bot/{appId}` 代理 QQ 官方，返回 `url`（换成本网关）、`shards`、`session_start_limit`。与 QQ 官方 WebSocket 能力对照见 [docs/GATEWAY-QQ-ALIGNMENT.md](docs/GATEWAY-QQ-ALIGNMENT.md)。
@@ -99,12 +100,12 @@ pnpm dev
 
 | 方式 | 文档 |
 |------|------|
-| **1Panel 运行环境 + Node（推荐，无 Docker）** | **[docs/DEPLOY-VPS-NODE.md](docs/DEPLOY-VPS-NODE.md)** |
-| GitHub 推 `main` 自动发布 | [docs/DEPLOY-GITHUB-ACTIONS.md](docs/DEPLOY-GITHUB-ACTIONS.md) |
+| **1Panel 运行环境 + Node（推荐）** | **[docs/DEPLOY-VPS-NODE.md](docs/DEPLOY-VPS-NODE.md)** |
+| GitHub 推 `master` 自动发布 | [docs/DEPLOY-GITHUB-ACTIONS.md](docs/DEPLOY-GITHUB-ACTIONS.md) |
 | 1Panel 反代 / WebSocket | [docs/DEPLOY-1PANEL.md](docs/DEPLOY-1PANEL.md) |
-| Supabase | [docs/DEPLOY-SUPABASE.md](docs/DEPLOY-SUPABASE.md) |
+| PostgreSQL | [docs/DEPLOY-POSTGRES.md](docs/DEPLOY-POSTGRES.md) |
 
-流程概要：本地 `pnpm db:push` → 1Panel 配 **Node 运行环境**（`bash scripts/1panel-start.sh`）→ GitHub Secrets `DEPLOY_*` → **push `main`** 自动 `pnpm build` → 面板 **重启** 运行环境。环境变量：[deploy/1panel.env.example](deploy/1panel.env.example)。
+流程概要：本地 `pnpm db:push` → 1Panel 配 **Node 运行环境**（`bash scripts/1panel-start.sh`）→ GitHub Secrets `DEPLOY_*` → **push `master`** 自动 `pnpm build` → 面板 **重启** 运行环境。环境变量：[deploy/1panel.env.example](deploy/1panel.env.example)。
 
 ## 环境变量
 

@@ -1,27 +1,7 @@
 import { NextRequest } from "next/server";
+import { isLocalHost, originFromRequest } from "@/lib/http-origin";
 
-function firstHeader(value: string | null): string | undefined {
-  return value?.split(",")[0]?.trim();
-}
-
-function isLocalHost(host: string): boolean {
-  const h = host.toLowerCase();
-  return h.includes("localhost") || h.startsWith("127.0.0.1");
-}
-
-/** 中间件 / 登录页：从反代头得到对外 origin */
-export function originFromRequest(req: NextRequest): string {
-  const host =
-    firstHeader(req.headers.get("x-forwarded-host")) ??
-    firstHeader(req.headers.get("host"));
-  let proto = firstHeader(req.headers.get("x-forwarded-proto"));
-  if (!proto && host) {
-    proto = isLocalHost(host) ? "http" : "https";
-  }
-  proto ??= "http";
-  if (host) return `${proto}://${host}`;
-  return req.nextUrl.origin;
-}
+export { originFromRequest };
 
 /** ngrok 到本地时 req.nextUrl 常为 localhost，需按 Host 头重建 */
 export function rebuildRequestFromForwardedHeaders(req: NextRequest): NextRequest {
@@ -36,11 +16,11 @@ function shouldUnsetCanonicalAuthUrl(req: NextRequest): boolean {
   if (process.env.AUTH_STRICT_URL === "1" || process.env.AUTH_STRICT_URL === "true") {
     return false;
   }
-  const canonical = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+  const canonical = process.env.AUTH_URL;
   if (!canonical) return false;
   const reqHost =
-    firstHeader(req.headers.get("x-forwarded-host")) ??
-    firstHeader(req.headers.get("host"));
+    req.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ??
+    req.headers.get("host")?.split(",")[0]?.trim();
   if (!reqHost) return false;
   return reqHost !== new URL(canonical).host;
 }
@@ -54,18 +34,16 @@ export async function runAuthHandler(
   handler: (request: NextRequest) => Promise<Response>,
 ): Promise<Response> {
   const request = rebuildRequestFromForwardedHeaders(req);
-  if (!shouldUnsetCanonicalAuthUrl(request)) {
+  const isDev = process.env.NODE_ENV !== "production";
+  if (!isDev || !shouldUnsetCanonicalAuthUrl(request)) {
     return handler(request);
   }
   const savedAuth = process.env.AUTH_URL;
-  const savedNext = process.env.NEXTAUTH_URL;
   delete process.env.AUTH_URL;
-  delete process.env.NEXTAUTH_URL;
   try {
     return await handler(request);
   } finally {
     if (savedAuth !== undefined) process.env.AUTH_URL = savedAuth;
-    if (savedNext !== undefined) process.env.NEXTAUTH_URL = savedNext;
   }
 }
 

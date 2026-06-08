@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import type { Bot, User } from "@prisma/client";
+import type { Bot, User } from "../../../generated/prisma/client";
 
 type Fail = { ok: false; response: NextResponse };
 type Ok<T> = { ok: true } & T;

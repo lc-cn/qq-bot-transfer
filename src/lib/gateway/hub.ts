@@ -57,10 +57,10 @@ async function authenticateToken(
     }
     const { accessToken, expiresIn } = await fetchAccessToken(pathAppId, secret);
     const dbBot = await prisma.bot.findUnique({ where: { appId: pathAppId } });
-    const botId = dbBot?.id ?? pathAppId;
+    if (!dbBot) throw new Error("bot not found");
     return globalHub.registerFromAuth(
       pathAppId,
-      botId,
+      dbBot.id,
       secret,
       accessToken,
       expiresIn,

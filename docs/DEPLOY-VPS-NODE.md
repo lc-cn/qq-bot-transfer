@@ -1,8 +1,8 @@
-# 1Panel 运行环境部署（无 Docker、无 PM2）
+# 1Panel 运行环境部署
 
 用 1Panel 自带的 **网站 → 运行环境（Node）** 托管进程；**GitHub Actions** 只负责 `git pull` + `pnpm build`，启动/重启在面板里完成。
 
-数据库：**Supabase**（`DATABASE_URL` + `DIRECT_URL`）。
+数据库：**PostgreSQL**（`DATABASE_URL`，见 [DEPLOY-POSTGRES.md](./DEPLOY-POSTGRES.md)）。
 
 ---
 
@@ -13,7 +13,7 @@
 | **1Panel 运行环境** | 常驻进程、开机自启、日志、启动/重启/停止 |
 | **GitHub Actions** | SSH → `pnpm install` → `prisma generate` → `pnpm build` |
 | **你（一次性）** | 配运行环境、`.env`、HTTPS、WebSocket |
-| **Supabase** | 数据表（本地 `pnpm db:push` 一次） |
+| **PostgreSQL** | 数据表（`pnpm db:push` 一次，见 [DEPLOY-POSTGRES.md](./DEPLOY-POSTGRES.md)） |
 
 **不要**在 1Panel 运行命令里写 `pnpm build`（面板里编译易卡死、失败会反复重试）。构建交给 Actions 或 SSH 手动脚本。
 
@@ -27,10 +27,10 @@
 git clone https://github.com/<你>/<仓库>.git /opt/qq-bot-transfer
 cd /opt/qq-bot-transfer
 cp deploy/1panel.env.example .env
-# 编辑 .env：Supabase、AUTH_URL、PUBLIC_URL、GITHUB OAuth、ENCRYPTION_KEY、GATEWAY_WS_URL
+# 编辑 .env：DATABASE_URL、AUTH_URL、PUBLIC_URL、GITHUB OAuth、ENCRYPTION_KEY、GATEWAY_WS_URL
 ```
 
-本地对 Supabase 建表一次：`pnpm db:push`（用 `DIRECT_URL`）。
+对目标库应用迁移一次：`pnpm exec prisma migrate deploy`（见 [DEPLOY-POSTGRES.md](./DEPLOY-POSTGRES.md)）。
 
 首次在服务器构建：
 
@@ -83,9 +83,9 @@ curl -s http://127.0.0.1:3000/api/health
 
 ## 二、GitHub 自动发布
 
-配置 Secrets：`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_PATH`（如 `/opt/qq-bot-transfer`）。
+配置 Secrets：`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_PATH`（如 `/opt/1panel/www/sites/bots.liucl.cn/index`）。详见 [DEPLOY-GITHUB-ACTIONS.md](./DEPLOY-GITHUB-ACTIONS.md)。
 
-推 **`main`** → 工作流 **Deploy** 执行 `scripts/deploy-node-on-server.sh`（只构建）。
+推 **`master`** → 工作流 **Deploy** 执行 `scripts/deploy-node-on-server.sh`（拉代码 + 迁移 + 构建）。
 
 **构建完成后**到 1Panel → **运行环境 → 重启**（Actions 不会代替面板重启进程）。
 
@@ -125,12 +125,5 @@ curl -s http://127.0.0.1:3000/api/health
 
 ### QQ SDK 拿到登录页 HTML
 
-确认 [middleware](../src/middleware.ts) 已放行 `/app/getAppAccessToken/`，且访问的是公网域名而非内网 IP。
+确认 [proxy](../src/proxy.ts) 已放行 `/app/getAppAccessToken`，且访问的是公网域名而非内网 IP。
 
----
-
-## 六、与 Docker / PM2
-
-- **Docker**：可选，见 `deploy-docker.yml`。
-- **PM2**：不需要；1Panel 运行环境已做进程托管。  
-  仓库里的 `ecosystem.config.cjs` 仅作非 1Panel 机器时的可选参考，可忽略。

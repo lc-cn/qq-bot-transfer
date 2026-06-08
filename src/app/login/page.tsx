@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { getAuthCsrfToken } from "@/lib/auth/csrf";
 import { normalizeCallbackUrl } from "@/lib/auth/resolve-request-url";
+import { originFromHeaderGet } from "@/lib/http-origin";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -28,10 +29,7 @@ export default async function LoginPage({ searchParams }: Props) {
   const session = await auth();
   const { callbackUrl, error } = await searchParams;
   const hdrs = await headers();
-  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host") ?? "localhost";
-  let proto = hdrs.get("x-forwarded-proto");
-  if (!proto) proto = host.includes("localhost") ? "http" : "https";
-  const publicOrigin = `${proto}://${host}`;
+  const publicOrigin = originFromHeaderGet((n) => hdrs.get(n));
   const target = normalizeCallbackUrl(callbackUrl, publicOrigin);
 
   if (session?.user?.id) {

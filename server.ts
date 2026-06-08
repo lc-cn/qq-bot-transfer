@@ -9,7 +9,7 @@ const dev = process.env.NODE_ENV !== "production";
 const port = parseInt(process.env.PORT ?? "3000", 10);
 const hostname = process.env.HOSTNAME ?? "0.0.0.0";
 const publicOrigin = new URL(
-  process.env.PUBLIC_URL ?? process.env.AUTH_URL ?? `http://localhost:${port}`,
+  process.env.PUBLIC_URL ?? `http://localhost:${port}`,
 );
 
 const app = next({ dev, hostname, port });
