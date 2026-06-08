@@ -3,4 +3,5 @@
 cd "$(dirname "$0")/.."
 export NODE_ENV=production
 export HOSTNAME="${HOSTNAME:-0.0.0.0}"
+export CI=true
 exec pnpm start

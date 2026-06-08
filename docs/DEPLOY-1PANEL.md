@@ -84,6 +84,16 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 - [proxy](../src/proxy.ts) 已放行 `/app/getAppAccessToken`
 - SDK 须用 **HTTPS 公网域名**，不要用内网 IP
 
+### `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`
+
+1Panel 启动时会自动跑 `pnpm install`，无交互终端时 pnpm 10 会报错。项目根已含 `.npmrc`（`confirm-modules-purge=false`），拉最新代码后重启即可。若仍失败，在运行环境 **环境变量** 里加 `CI=true`，或 SSH 手动：
+
+```bash
+cd /opt/1panel/www/sites/bots.liucl.cn/index
+rm -rf node_modules
+CI=true pnpm install
+```
+
 ### WebSocket / Live 连不上
 
 - 站点开启 **WebSocket 反代**
@@ -94,4 +104,4 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 1. 服务器：`git pull` + `bash scripts/deploy-node-on-server.sh`（或推 `master` 触发 Actions）  
 2. 1Panel → 运行环境 → **重启**
 
-`schema.prisma` 变更时在能连库的环境执行 `pnpm db:push`。
+`schema.prisma` 变更时在能连库的环境执行 `pnpm exec prisma migrate deploy`。

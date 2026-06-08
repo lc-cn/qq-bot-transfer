@@ -15,6 +15,8 @@ if ! command -v pnpm &>/dev/null; then
   corepack prepare pnpm@latest --activate
 fi
 
+export CI=true
+
 echo "==> pnpm install"
 pnpm install --frozen-lockfile 2>/dev/null || pnpm install
 
