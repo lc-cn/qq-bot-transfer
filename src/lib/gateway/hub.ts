@@ -183,6 +183,8 @@ async function handleConnection(
   const username = dbBot?.name ?? bot.appId;
   const userId = dbBot?.qq || bot.appId;
 
+  bot.seedGatewaySeq(1);
+
   // READY：user.id ← Bot QQ；user.username ← Bot 名称
   sendJson(ws, {
     op: Op.Dispatch,

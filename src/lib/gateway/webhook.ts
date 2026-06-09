@@ -69,9 +69,15 @@ export async function processWebhook(
       };
     }
     case 0: {
+      const clients = bot.clientCount();
       console.log(
-        `[webhook] bot=${appId} op=0 event=${payload.t} clients=${bot.clientCount()}`,
+        `[webhook] bot=${appId} op=0 event=${payload.t} clients=${clients}`,
       );
+      if (clients === 0) {
+        console.warn(
+          `[webhook] bot=${appId} no websocket clients connected; event persisted only`,
+        );
+      }
       bot.forwardEvent(payload);
       void persistWebhookEvent(bot.botId, payload);
       return { status: 204 };

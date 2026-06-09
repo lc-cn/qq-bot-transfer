@@ -27,6 +27,8 @@ export class BotRuntime {
   readonly publicKey: Buffer;
   readonly tokenMgr: TokenManager;
   private clients = new Map<string, Client>();
+  /** 与 READY s=1 对齐，后续 Webhook 转发递增 */
+  private gatewaySeq = 1;
 
   constructor(
     appId: string,
@@ -92,6 +94,20 @@ export class BotRuntime {
     return this.clients.size;
   }
 
+  /** READY 下发后同步序列（官方从 s=1 开始） */
+  seedGatewaySeq(seq: number): void {
+    this.gatewaySeq = Math.max(this.gatewaySeq, seq);
+  }
+
+  /** Webhook 无 s 时网关自行递增，满足 QQ SDK 对 Dispatch 的要求 */
+  private nextGatewaySeq(present?: number): number {
+    if (present !== undefined) {
+      this.gatewaySeq = Math.max(this.gatewaySeq, present);
+      return present;
+    }
+    return ++this.gatewaySeq;
+  }
+
   broadcast(data: string): void {
     for (const client of this.clients.values()) {
       if (client.conn.readyState === client.conn.OPEN) {
@@ -103,13 +119,19 @@ export class BotRuntime {
   }
 
   forwardEvent(payload: WebhookPayload): void {
+    const s = this.nextGatewaySeq(payload.s);
     const msg: Record<string, unknown> = {
       op: payload.op,
       t: payload.t,
       d: payload.d,
+      s,
     };
     if (payload.id) msg.id = payload.id;
-    if (payload.s !== undefined) msg.s = payload.s;
+    const n = this.clientCount();
+    console.log(
+      `[ws] bot=${this.appId} forward t=${payload.t ?? "?"} s=${s} clients=${n}`,
+    );
+    if (n === 0) return;
     this.broadcast(JSON.stringify(msg));
   }
 
@@ -182,4 +204,14 @@ class BotHub {
   }
 }
 
-export const globalHub = new BotHub();
+/** Next 自定义 server 与 Route Handler 可能各加载一份模块，须挂 globalThis */
+const globalForHub = globalThis as unknown as { __qqBotHub?: BotHub };
+
+function getGlobalHub(): BotHub {
+  if (!globalForHub.__qqBotHub) {
+    globalForHub.__qqBotHub = new BotHub();
+  }
+  return globalForHub.__qqBotHub;
+}
+
+export const globalHub = getGlobalHub();
