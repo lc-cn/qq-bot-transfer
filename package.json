@@ -7,13 +7,13 @@
     "dev:next": "next dev",
     "build": "next build",
     "build:cf": "opennextjs-cloudflare build",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy": "opennextjs-cloudflare build && wrangler d1 migrations apply DB --remote && opennextjs-cloudflare deploy",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "lint": "eslint",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply qq-bot-transfer --local",
-    "db:migrate:remote": "wrangler d1 migrations apply qq-bot-transfer --remote",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "cf-typegen": "wrangler types --env-interface WorkerEnv --include-runtime false worker-configuration.d.ts"
   },
   "dependencies": {
@@ -32,6 +32,31 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "cloudflare": {
+    "bindings": {
+      "AUTH_SECRET": {
+        "description": "Auth.js 会话密钥。生成：`openssl rand -base64 32`"
+      },
+      "AUTH_GITHUB_ID": {
+        "description": "GitHub OAuth App Client ID。创建：https://github.com/settings/developers"
+      },
+      "AUTH_GITHUB_SECRET": {
+        "description": "GitHub OAuth App Client Secret。Callback 填 `https://<你的域名>/api/auth/callback/github`"
+      },
+      "ENCRYPTION_KEY": {
+        "description": "Bot clientSecret 加密密钥（64 位 hex）。生成：`openssl rand -hex 32`"
+      },
+      "PUBLIC_URL": {
+        "description": "对外 HTTPS 基址，如 `https://qq-bot-transfer.<你的子域>.workers.dev` 或自定义域"
+      },
+      "GATEWAY_WS_URL": {
+        "description": "WebSocket 基址（含 `/websocket`），如 `wss://<域名>/websocket`"
+      },
+      "AUTH_URL": {
+        "description": "Auth.js 基址，通常与 **PUBLIC_URL** 相同"
+      }
+    }
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260609.1",

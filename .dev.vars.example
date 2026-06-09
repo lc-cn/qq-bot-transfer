@@ -1,0 +1,10 @@
+# Worker Secrets（部署时在 Cloudflare 控制台填写，或 wrangler secret put）
+# 复制为 .dev.vars 用于本地 wrangler dev
+
+AUTH_SECRET=generate-with-openssl-rand-base64-32
+AUTH_GITHUB_ID=
+AUTH_GITHUB_SECRET=
+ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+
+# 可选
+# HEALTH_KEY=

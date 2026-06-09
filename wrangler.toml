@@ -1,5 +1,4 @@
 name = "qq-bot-transfer"
-account_id = "d666552d4bbacf54768d4bd8c2c1c735"
 main = "worker/index.ts"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
@@ -33,6 +32,7 @@ directory = ".open-next/assets"
 binding = "ASSETS"
 
 [vars]
+# 一键部署时请在 Cloudflare 配置页改为你的域名；示例为官方演示实例
 PUBLIC_URL = "https://bots.l2cl.link"
 GATEWAY_WS_URL = "wss://bots.l2cl.link/websocket"
 AUTH_URL = "https://bots.l2cl.link"

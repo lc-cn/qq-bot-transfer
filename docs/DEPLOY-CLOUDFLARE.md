@@ -64,15 +64,21 @@ wss://bots.l2cl.link/websocket/{appId}
 
 ## 7. 构建与部署
 
-**推荐：GitHub Actions 自动部署** — 配好 `CLOUDFLARE_API_TOKEN` 后推 `master` 即可，见 [DEPLOY-GITHUB-ACTIONS.md](./DEPLOY-GITHUB-ACTIONS.md)。
+### 一键部署（Deploy to Cloudflare 按钮）
 
-手动部署：
+README 顶部的按钮会 Fork 仓库、自动创建 D1 / Queue / DO，并启用 Workers Builds。
+
+部署时在配置页填写 Secrets 与 `PUBLIC_URL` 等变量（说明见 `package.json` → `cloudflare.bindings`）。本地 Secrets 模板：`.dev.vars.example`。
+
+### GitHub Actions（本仓库）
+
+配好 `CLOUDFLARE_API_TOKEN` 后推 `master` 即可，见 [DEPLOY-GITHUB-ACTIONS.md](./DEPLOY-GITHUB-ACTIONS.md)。
+
+### 手动部署
 
 ```bash
 pnpm install
-pnpm run build:cf
-pnpm run deploy   # opennextjs-cloudflare build && opennextjs-cloudflare deploy
-pnpm run db:migrate:remote
+pnpm run deploy   # build + D1 migrate + deploy
 ```
 
 首次 deploy 前创建 Queue：

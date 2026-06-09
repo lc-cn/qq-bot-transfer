@@ -16,6 +16,7 @@
 /out/
 .env
 .env.*
+.dev.vars
 
 # production
 /build
