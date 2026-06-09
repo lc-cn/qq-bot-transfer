@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
-import type { Bot, User } from "../../../generated/prisma/client";
+import { getDb, type Bot, type User } from "@/lib/db";
+import { bots, users } from "@drizzle/schema";
 
 type Fail = { ok: false; response: NextResponse };
 type Ok<T> = { ok: true } & T;
 
-export async function getSessionUser() {
+export async function getSessionUser(): Promise<User | null> {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return null;
-  return prisma.user.findUnique({ where: { id: userId } });
+  const db = await getDb();
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return user ?? null;
 }
 
 function unauthorized(): Fail {
@@ -38,7 +45,12 @@ export async function requireBotOwnership(
 ): Promise<Ok<{ user: User; bot: Bot }> | Fail> {
   const authResult = await requireUser();
   if (!authResult.ok) return authResult;
-  const bot = await prisma.bot.findUnique({ where: { appId } });
+  const db = await getDb();
+  const [bot] = await db
+    .select()
+    .from(bots)
+    .where(eq(bots.appId, appId))
+    .limit(1);
   if (!bot || bot.userId !== authResult.user.id) return forbidden();
   return { ok: true, user: authResult.user, bot };
 }

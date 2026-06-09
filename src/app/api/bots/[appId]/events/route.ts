@@ -1,6 +1,8 @@
+import { count, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { requireBotOwnership } from "@/lib/auth/session";
+import { webhookEvents } from "@drizzle/schema";
 
 type Params = { params: Promise<{ appId: string }> };
 
@@ -15,24 +17,27 @@ export async function GET(request: Request, { params }: Params) {
     100,
     Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)),
   );
-  const skip = (page - 1) * limit;
+  const offset = (page - 1) * limit;
 
-  const [items, total] = await Promise.all([
-    prisma.webhookEvent.findMany({
-      where: { botId: bot.id },
-      orderBy: { receivedAt: "desc" },
-      skip,
-      take: limit,
-      select: {
-        id: true,
-        op: true,
-        eventType: true,
-        payload: true,
-        receivedAt: true,
-      },
-    }),
-    prisma.webhookEvent.count({ where: { botId: bot.id } }),
-  ]);
+  const db = await getDb();
+  const items = await db
+    .select({
+      id: webhookEvents.id,
+      op: webhookEvents.op,
+      eventType: webhookEvents.eventType,
+      payload: webhookEvents.payload,
+      receivedAt: webhookEvents.receivedAt,
+    })
+    .from(webhookEvents)
+    .where(eq(webhookEvents.botId, bot.id))
+    .orderBy(desc(webhookEvents.receivedAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(webhookEvents)
+    .where(eq(webhookEvents.botId, bot.id));
 
   return NextResponse.json({ items, total, page, limit });
 }

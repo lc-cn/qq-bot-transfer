@@ -1,7 +1,8 @@
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 import GitHub from "next-auth/providers/github";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { users } from "@drizzle/schema";
 
 type GitHubProfile = {
   id?: number | string;
@@ -16,21 +17,27 @@ async function upsertUserFromGitHub(profile: GitHubProfile) {
   const githubId = String(profile.id);
   const image =
     typeof profile.image === "string" ? profile.image : null;
+  const db = await getDb();
 
-  return prisma.user.upsert({
-    where: { githubId },
-    create: {
+  const [user] = await db
+    .insert(users)
+    .values({
       githubId,
       email: profile.email ?? null,
       name: profile.name ?? profile.login ?? null,
       image,
-    },
-    update: {
-      email: profile.email ?? undefined,
-      name: profile.name ?? profile.login ?? undefined,
-      image: image ?? undefined,
-    },
-  });
+    })
+    .onConflictDoUpdate({
+      target: users.githubId,
+      set: {
+        email: profile.email ?? null,
+        name: profile.name ?? profile.login ?? null,
+        image,
+      },
+    })
+    .returning();
+
+  return user ?? null;
 }
 
 export const authConfig = {

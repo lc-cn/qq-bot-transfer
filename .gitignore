@@ -19,6 +19,11 @@
 
 # production
 /build
+.open-next
+
+# cloudflare
+.wrangler
+worker-configuration.d.ts
 
 # misc
 .DS_Store
@@ -36,7 +41,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# prisma
+# prisma (legacy)
 prisma/*.db
 prisma/*.db-journal
 /generated/prisma

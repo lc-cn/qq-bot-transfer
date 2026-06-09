@@ -50,7 +50,7 @@ export function EventsTable({ appId }: { appId: string }) {
       `/api/bots/${encodeURIComponent(appId)}/events?page=${page}&limit=${limit}`,
     );
     if (res.ok) {
-      const data = await res.json();
+      const data = (await res.json()) as { items: EventRow[]; total: number };
       setItems(data.items);
       setTotal(data.total);
     }
@@ -70,7 +70,7 @@ export function EventsTable({ appId }: { appId: string }) {
         `/api/bots/${encodeURIComponent(appId)}/events?page=1&limit=${limit}`,
       );
       if (res.ok) {
-        const data = await res.json();
+        const data = (await res.json()) as { items: EventRow[]; total: number };
         setItems(data.items);
         setTotal(data.total);
       }

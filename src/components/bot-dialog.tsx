@@ -59,7 +59,7 @@ export function BotDialog({ open, onClose, onSaved, edit }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { error?: unknown };
       if (!res.ok) {
         setError(
           typeof data.error === "string"

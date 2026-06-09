@@ -1,13 +1,14 @@
-# GitHub Actions 自动发布（1Panel 运行环境）
+# GitHub Actions 自动部署（Cloudflare）
 
-推 **`master`** 后 SSH 到服务器，执行：
+推 **`master`** 后自动：
 
-`git pull` → `pnpm install` → `prisma migrate deploy` → `prisma generate` → `pnpm build`
+1. `typecheck`
+2. D1 远程迁移（`migrations/` 中有未应用变更时才会执行）
+3. `opennextjs-cloudflare build` + `deploy` 到 `qq-bot-transfer` Worker
 
-**不会**启动或重启进程——由 **1Panel → 网站 → 运行环境** 负责运行 `pnpm start`。
+也可在 GitHub **Actions → Deploy → Run workflow** 手动触发。
 
-完整面板配置见 **[DEPLOY-VPS-NODE.md](./DEPLOY-VPS-NODE.md)**。  
-`bots.liucl.cn` 路径示例见 **[DEPLOY-bots-liucl.md](./DEPLOY-bots-liucl.md)**。
+Worker Secrets（`AUTH_SECRET`、`ENCRYPTION_KEY` 等）**只在 Cloudflare 配置一次**，CI 不会覆盖；见 [DEPLOY-CLOUDFLARE.md](./DEPLOY-CLOUDFLARE.md) 第 3 节。
 
 ---
 
@@ -16,74 +17,80 @@
 ```
 push master
   → GitHub Actions（deploy.yml）
-  → SSH：scripts/deploy-node-on-server.sh（拉代码 + 构建）
-  → 你：1Panel 运行环境 → 重启
+  → typecheck → D1 migrate → build:cf → wrangler deploy
+  → https://bots.l2cl.link 自动更新
 ```
 
-也可在 GitHub **Actions → Deploy → Run workflow** 手动触发。
+PR 仅跑 **CI**（`.github/workflows/ci.yml`：typecheck + build），不部署。
 
 ---
 
-## Secrets（必配）
+## 一次性配置
+
+### 1. 创建 Cloudflare API Token
+
+[Cloudflare Dashboard → My Profile → API Tokens → Create Token](https://dash.cloudflare.com/profile/api-tokens)
+
+推荐 **Edit Cloudflare Workers** 模板，或自定义权限至少包含：
+
+| 权限 | 级别 |
+|------|------|
+| Account → Workers Scripts | Edit |
+| Account → D1 | Edit |
+| Account → Account Settings | Read |
+
+Account Resources 选 **admin@liucl.dev**（或你的账号）。
+
+### 2. 添加 GitHub Secret
 
 仓库 **Settings → Secrets and variables → Actions → New repository secret**：
 
-| Secret | 说明 | 示例 |
-|--------|------|------|
-| `DEPLOY_HOST` | 服务器 IP 或域名 | `1.2.3.4` |
-| `DEPLOY_USER` | SSH 用户 | `root` |
-| `DEPLOY_SSH_KEY` | 部署私钥全文（`-----BEGIN ...`） | ed25519 私钥 |
-| `DEPLOY_PATH` | 服务器项目根目录 | `/opt/1panel/www/sites/bots.liucl.cn/index` |
+| Secret | 说明 |
+|--------|------|
+| `CLOUDFLARE_API_TOKEN` | 上一步创建的 Token 全文 |
 
-可选：
+`account_id` 已写在 `wrangler.toml`，无需再配 `CLOUDFLARE_ACCOUNT_ID`。
 
-| Secret | 说明 | 默认 |
-|--------|------|------|
-| `DEPLOY_PORT` | SSH 端口 | `22` |
+### 3. 确认 Cloudflare Secrets 已就绪
 
-**注意**：不要在 workflow 的 `if` 里判断 secrets（GitHub 不支持，会导致 workflow 直接失败）。
+若从未在生产写入过，本地执行一次（仅需一次）：
+
+```bash
+pnpm exec wrangler secret put AUTH_SECRET
+pnpm exec wrangler secret put AUTH_GITHUB_ID
+pnpm exec wrangler secret put AUTH_GITHUB_SECRET
+pnpm exec wrangler secret put ENCRYPTION_KEY
+```
 
 ---
 
-## 服务器首次（SSH 一次）
+## 验证
 
-```bash
-cd /opt/1panel/www/sites/bots.liucl.cn/index   # 或你的 DEPLOY_PATH
-git clone https://github.com/lc-cn/qq-bot-transfer.git .   # 若目录为空
-cp .env.production .env   # 填 DATABASE_URL、AUTH_*、ENCRYPTION_KEY 等
-bash scripts/deploy-node-on-server.sh
-```
-
-然后在 1Panel：
-
-1. 创建 **Node 运行环境**（启动：`bash scripts/1panel-start.sh`）
-2. 网站 **bots.liucl.cn** 绑定该环境 + **HTTPS** + **WebSocket**
-3. 运行环境 → **启动**
-
-配齐 GitHub Secrets 后，之后推 `master` 即可自动构建。
+1. 推一个 commit 到 `master`，或手动 Run workflow
+2. Actions 里 **Deploy** 全绿
+3. `curl https://bots.l2cl.link/api/health` 正常
 
 ---
 
 ## 常见问题
 
-### Actions 0 秒失败 / workflow file issue
+### Actions 失败：Authentication error
 
-旧版 `deploy.yml` 在 job 级 `if` 里用了 `secrets.*`，已移除。请 pull 最新 `master`。
+- 检查 `CLOUDFLARE_API_TOKEN` 是否过期或被撤销
+- Token 需包含 Workers + D1 写权限
 
-### SSH 连接失败
+### migrate 失败
 
-- 服务器安全组 / 防火墙放行 `DEPLOY_PORT`
-- 公钥已写入服务器 `~/.ssh/authorized_keys`（与 `DEPLOY_SSH_KEY` 成对）
-- `DEPLOY_PATH` 目录存在且部署用户有读写权限
+- 确认 `wrangler.toml` 里 `database_id` 与生产 D1 一致
+- 本地 `pnpm run db:migrate:remote` 复现并修复 SQL
 
-### 构建失败：Missing .env
+### 部署成功但行为未变
 
-服务器项目根必须有 `.env`（Actions 不会上传 secrets 到 `.env`，需 SSH 手动放置一次）。
+- Worker 已更新；若改的是 Bot 客户端逻辑，需重启本地 QQ Bot SDK
+- Durable Object 实例可能仍持有旧连接，WS 断线重连后会走新代码
 
-### Actions 成功但线上仍是旧版
+---
 
-构建后必须在 1Panel 点 **重启** 运行环境（Actions 不重启进程）。
+## Legacy：VPS + 1Panel
 
-### migrate deploy 失败
-
-检查 `.env` 里 `DATABASE_URL` 可从 VPS 连到数据库（本机 Postgres 或 Prisma Postgres）。
+旧版 SSH 部署说明见 [DEPLOY-VPS-NODE.md](./DEPLOY-VPS-NODE.md)。当前推荐 Cloudflare 单体部署。

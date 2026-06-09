@@ -38,12 +38,13 @@ export async function runAuthHandler(
   if (!isDev || !shouldUnsetCanonicalAuthUrl(request)) {
     return handler(request);
   }
-  const savedAuth = process.env.AUTH_URL;
-  delete process.env.AUTH_URL;
+  const env = process.env as Record<string, string | undefined>;
+  const savedAuth = env.AUTH_URL;
+  delete env.AUTH_URL;
   try {
     return await handler(request);
   } finally {
-    if (savedAuth !== undefined) process.env.AUTH_URL = savedAuth;
+    if (savedAuth !== undefined) env.AUTH_URL = savedAuth;
   }
 }
 

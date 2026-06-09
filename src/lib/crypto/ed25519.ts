@@ -1,5 +1,7 @@
 import { createPrivateKey, createPublicKey, sign, verify } from "node:crypto";
 
+export type Ed25519PrivateKey = ReturnType<typeof createPrivateKey>;
+
 const SEED_SIZE = 32;
 
 function seedFromSecret(secret: string): Buffer {
@@ -31,7 +33,7 @@ export function deriveKeyPair(secret: string): {
 }
 
 export function verifySignature(
-  publicKey: Buffer,
+  publicKey: Uint8Array,
   timestamp: string,
   body: string,
   hexSig: string,
@@ -41,7 +43,7 @@ export function verifySignature(
     const msg = Buffer.from(timestamp + body, "utf8");
     const spki = Buffer.concat([
       Buffer.from("302a300506032b6570032100", "hex"),
-      publicKey,
+      Buffer.from(publicKey),
     ]);
     return verify(null, msg, { key: spki, format: "der", type: "spki" }, sig);
   } catch {
@@ -50,7 +52,7 @@ export function verifySignature(
 }
 
 export function signChallenge(
-  privateKey: ReturnType<typeof createPrivateKey>,
+  privateKey: Ed25519PrivateKey,
   eventTs: string,
   plainToken: string,
 ): string {

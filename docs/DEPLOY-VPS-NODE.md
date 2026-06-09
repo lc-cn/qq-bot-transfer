@@ -1,5 +1,7 @@
 # 1Panel 运行环境部署
 
+> **Legacy**：当前推荐部署方式为 [DEPLOY-CLOUDFLARE.md](./DEPLOY-CLOUDFLARE.md)（Cloudflare Worker + D1）。本文档保留供旧 VPS Node 环境参考。
+
 用 1Panel 自带的 **网站 → 运行环境（Node）** 托管进程；**GitHub Actions** 只负责 `git pull` + `pnpm build`，启动/重启在面板里完成。
 
 数据库：**PostgreSQL**（`DATABASE_URL`，见 [DEPLOY-POSTGRES.md](./DEPLOY-POSTGRES.md)）。

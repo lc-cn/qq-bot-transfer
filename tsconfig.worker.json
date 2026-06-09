@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "types": ["@cloudflare/workers-types"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@drizzle/*": ["./drizzle/*"]
+    }
+  },
+  "include": [
+    "cloudflare-env.d.ts",
+    "worker/**/*.ts",
+    "worker/**/*.d.ts",
+    "drizzle/**/*.ts",
+    "src/lib/crypto/**/*.ts",
+    "src/lib/gateway/**/*.ts",
+    "src/lib/db/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".open-next"]
+}

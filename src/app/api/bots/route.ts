@@ -1,26 +1,29 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { encryptSecret } from "@/lib/crypto/secrets";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { botCreateSchema } from "@/lib/validators/bot";
-import { globalHub } from "@/lib/gateway/bot-runtime";
+import { bots } from "@drizzle/schema";
 
 export async function GET() {
   const authResult = await requireUser();
   if (!authResult.ok) return authResult.response;
-  const bots = await prisma.bot.findMany({
-    where: { userId: authResult.user.id },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      qq: true,
-      appId: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
-  return NextResponse.json(bots);
+  const db = await getDb();
+  const list = await db
+    .select({
+      id: bots.id,
+      name: bots.name,
+      qq: bots.qq,
+      appId: bots.appId,
+      createdAt: bots.createdAt,
+      updatedAt: bots.updatedAt,
+    })
+    .from(bots)
+    .where(eq(bots.userId, authResult.user.id))
+    .orderBy(desc(bots.updatedAt));
+  return NextResponse.json(list);
 }
 
 export async function POST(request: Request) {
@@ -35,17 +38,19 @@ export async function POST(request: Request) {
     );
   }
   const { name, qq, appId, clientSecret } = parsed.data;
+  const db = await getDb();
+  const { env } = await getCloudflareContext({ async: true });
   try {
-    const bot = await prisma.bot.create({
-      data: {
+    const [bot] = await db
+      .insert(bots)
+      .values({
         userId: authResult.user.id,
         name,
         qq,
         appId,
-        secretEnc: encryptSecret(clientSecret),
-      },
-    });
-    await globalHub.getOrLoad(appId);
+        secretEnc: encryptSecret(clientSecret, env.ENCRYPTION_KEY),
+      })
+      .returning();
     return NextResponse.json({
       id: bot.id,
       name: bot.name,
@@ -56,7 +61,7 @@ export async function POST(request: Request) {
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "create failed";
-    if (msg.includes("Unique constraint")) {
+    if (msg.includes("UNIQUE") || msg.includes("unique")) {
       return NextResponse.json({ error: "appId already exists" }, { status: 409 });
     }
     return NextResponse.json({ error: msg }, { status: 500 });

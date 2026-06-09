@@ -1,9 +1,12 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { encryptSecret } from "@/lib/crypto/secrets";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { requireBotOwnership } from "@/lib/auth/session";
 import { botUpdateSchema } from "@/lib/validators/bot";
-import { globalHub } from "@/lib/gateway/bot-runtime";
+import { invalidateDoBot } from "@/lib/gateway/do-client";
+import { bots } from "@drizzle/schema";
 
 type Params = { params: Promise<{ appId: string }> };
 
@@ -35,18 +38,25 @@ export async function PATCH(request: Request, { params }: Params) {
       { status: 400 },
     );
   }
-  const data: { name?: string; qq?: string; secretEnc?: string } = {};
-  if (parsed.data.name) data.name = parsed.data.name;
-  if (parsed.data.qq) data.qq = parsed.data.qq;
+  const patch: Partial<typeof bots.$inferInsert> = {
+    updatedAt: new Date(),
+  };
+  if (parsed.data.name) patch.name = parsed.data.name;
+  if (parsed.data.qq) patch.qq = parsed.data.qq;
   if (parsed.data.clientSecret) {
-    data.secretEnc = encryptSecret(parsed.data.clientSecret);
+    const { env } = await getCloudflareContext({ async: true });
+    patch.secretEnc = encryptSecret(
+      parsed.data.clientSecret,
+      env.ENCRYPTION_KEY,
+    );
   }
-  const updated = await prisma.bot.update({
-    where: { id: bot.id },
-    data,
-  });
-  globalHub.evict(appId);
-  await globalHub.getOrLoad(appId);
+  const db = await getDb();
+  const [updated] = await db
+    .update(bots)
+    .set(patch)
+    .where(eq(bots.id, bot.id))
+    .returning();
+  await invalidateDoBot(appId);
   return NextResponse.json({
     id: updated.id,
     name: updated.name,
@@ -61,7 +71,8 @@ export async function DELETE(_request: Request, { params }: Params) {
   const result = await requireBotOwnership(appId);
   if (!result.ok) return result.response;
   const { bot } = result;
-  globalHub.evict(appId);
-  await prisma.bot.delete({ where: { id: bot.id } });
+  const db = await getDb();
+  await db.delete(bots).where(eq(bots.id, bot.id));
+  await invalidateDoBot(appId);
   return NextResponse.json({ ok: true });
 }

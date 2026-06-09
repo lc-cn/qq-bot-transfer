@@ -1,31 +1,26 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { eq } from "drizzle-orm";
 import { decryptSecret } from "@/lib/crypto/secrets";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { registerTokenWithDo } from "@/lib/gateway/do-client";
 import { fetchAccessToken } from "./token-manager";
-import { globalHub } from "./bot-runtime";
+import { bots } from "@drizzle/schema";
 
 export async function ensureBotAccessToken(appId: string): Promise<{
   accessToken: string;
   expiresIn: number;
 } | null> {
-  const dbBot = await prisma.bot.findUnique({ where: { appId } });
+  const db = await getDb();
+  const [dbBot] = await db
+    .select()
+    .from(bots)
+    .where(eq(bots.appId, appId))
+    .limit(1);
   if (!dbBot) return null;
 
-  const rt = await globalHub.getOrLoad(appId);
-  if (!rt) return null;
-
-  const existing = rt.tokenMgr.token();
-  if (existing) {
-    return { accessToken: existing, expiresIn: 7200 };
-  }
-
-  const secret = decryptSecret(dbBot.secretEnc);
+  const { env } = await getCloudflareContext({ async: true });
+  const secret = decryptSecret(dbBot.secretEnc, env.ENCRYPTION_KEY);
   const { accessToken, expiresIn } = await fetchAccessToken(appId, secret);
-  await globalHub.registerFromAuth(
-    appId,
-    dbBot.id,
-    secret,
-    accessToken,
-    expiresIn,
-  );
+  await registerTokenWithDo(appId, accessToken);
   return { accessToken, expiresIn };
 }

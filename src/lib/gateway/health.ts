@@ -1,8 +1,6 @@
-import { globalHub } from "./bot-runtime";
-
 export type HealthResult =
   | { status: 403 }
-  | { status: 200; body: { status: string; bots: number; clients: number } };
+  | { status: 200; body: { status: string } };
 
 export function getHealthResponse(
   healthKeyHeader: string | null | undefined,
@@ -13,9 +11,8 @@ export function getHealthResponse(
       return { status: 403 };
     }
   }
-  const stats = globalHub.stats();
   return {
     status: 200,
-    body: { status: "ok", bots: stats.bots, clients: stats.clients },
+    body: { status: "ok" },
   };
 }

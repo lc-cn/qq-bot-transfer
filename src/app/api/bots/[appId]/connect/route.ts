@@ -1,8 +1,9 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { forwardedFromHeaders } from "@/lib/http-origin";
 import { requireBotOwnership } from "@/lib/auth/session";
 import { ensureBotAccessToken } from "@/lib/gateway/ensure-access-token";
-import { getGatewayApiResponse } from "@/lib/gateway/gateway-api";
+import { resolveGatewayWsUrl } from "@/lib/gateway/core/gateway-url";
 
 type Params = { params: Promise<{ appId: string }> };
 
@@ -18,19 +19,21 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   const hdrs = await headers();
-  const gateway = getGatewayApiResponse(
+  const { host, proto } = forwardedFromHeaders(hdrs);
+  const requestUrl = new URL(`${proto}://${host}`);
+
+  const url = resolveGatewayWsUrl(
     appId,
-    `QQBot ${tokens.accessToken}`,
-    hdrs.get("x-union-appid"),
-    hdrs,
+    {
+      GATEWAY_WS_URL: process.env.GATEWAY_WS_URL,
+      PUBLIC_URL: process.env.PUBLIC_URL,
+    },
+    requestUrl,
   );
-  if (gateway.status !== 200) {
-    return NextResponse.json(gateway.body, { status: gateway.status });
-  }
 
   return NextResponse.json({
     access_token: tokens.accessToken,
     expires_in: tokens.expiresIn,
-    url: gateway.body.url,
+    url,
   });
 }

@@ -21,14 +21,14 @@
 | Op 0 READY | `version`、`session_id`、`user`、`shard` | `version`、`session_id`、`shard`、`app_id`；`user.id` 为 Bot QQ；`user.username` 为 Bot 名称 | ⚠️ 部分 |
 | Op 1 心跳 | `d` 为最新序列号 `s` | 接收并记录客户端上报的 `d`；回 Op 11 | ✅ |
 | Op 0 事件 | `id`、`op`、`d`、`s`、`t` | Webhook 转发时保留 `id`、`t`、`d`；无 `s` 时网关递增分配 | ✅ |
-| Op 6 Resume | 断线补发遗漏事件 | **不支持**，返回 Op 9 说明原因（无 QQ 会话事件缓存，无法补发） | ❌ 诚实拒绝 |
+| Op 6 Resume | 断线补发遗漏事件 | **接受 Resume 并重发 READY**（不补发历史事件，Webhook 实时流无缓存） | ⚠️ 部分 |
 | Op 7 Reconnect | 服务端要求重连 | 未主动下发 | — |
 | 分片 `shard` | QQ 按 guild 哈希分片 | 单 Webhook 入口，**不做**官方分片负载；`shard` 仅回显客户端 Identify | ❌ 架构不同 |
 
 ## 无法补齐（勿编造）
 
 - **READY.user**：`id` / `username` 来自本系统 Bot 的 `qq` / `name` 字段，非 QQ 开放平台实时拉取；未填 QQ 时 `id` 回退为 `appId`。
-- **Resume / 事件补发**：需官方 Gateway 会话状态与事件队列；本网关只有 Webhook 实时流。
+- **Resume / 事件补发**：Resume 可重连并收到新 READY，但**不会**补发断线期间遗漏的事件（仅 Webhook 实时流）。
 - **intents 过滤**：官方在 Gateway 侧按位订阅；本网关接收平台 Webhook 已筛选后的 op=0 事件，无法在 WS 层再按 intents 过滤。
 - **真实分片**：官方 `GET /gateway/bot` 的 `shards` 用于多连接负载；本网关多租户路径为 `/websocket/{appId}`，事件由 Webhook 广播到该 Bot 下所有 WS 客户端。
 
@@ -37,5 +37,5 @@
 - Webhook / WS 转发 Payload 增加字段 `s`
 - READY 增加 `version`、`shard`（及 `s: 1`）
 - 心跳按官方携带 / 记录 `d`（序列号）
-- 明确拒绝 Op 6 Resume
+- 支持 Op 6 Resume（重连 READY，无事件补发）
 - 新增 `GET /gateway/bot/{appId}` 代理官方
