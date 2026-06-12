@@ -10,24 +10,22 @@ import {
 import { GatewaySeq, buildDispatch } from "../src/lib/gateway/core/gateway-seq";
 import { resolveGatewayWsUrl } from "../src/lib/gateway/gateway-url";
 import { fetchAccessToken } from "../src/lib/gateway/token/manager";
-import {
-  Op,
-  type GatewayPayload,
-  type IdentifyPayload,
-  type ResumePayload,
-} from "../src/lib/gateway/ws-protocol";
+import { Op, type GatewayPayload, type IdentifyPayload, type ResumePayload } from "../src/lib/gateway/ws-protocol";
 import type { BotSigningMaterial } from "../src/lib/gateway/core/types";
 import type { Env, EventQueueMessage } from "./env";
+import {
+  type WsAttachment,
+  parseWsMessage,
+  buildHelloPayload,
+  buildReadyPayload,
+  buildInvalidSessionPayload,
+  buildHeartbeatAck,
+} from "./ws-handler";
+import { proxyAuthRequest } from "./auth-proxy";
 
 const HELLO_MS = 30_000;
-const AUTH_URL = "https://bots.qq.com/app/getAppAccessToken";
 const UPSTREAM_GATEWAY_BOT = "https://api.sgroup.qq.com/gateway/bot";
 const APP_ID_HEADER = "X-Bot-App-Id";
-
-type WsAttachment = {
-  identified: boolean;
-  sessionId?: string;
-};
 
 function parseAppIdFromPath(pathname: string): string | null {
   const patterns = [
@@ -163,59 +161,15 @@ export class BotGatewayDO extends DurableObject<Env> {
   }
 
   private async handleAuthProxy(request: Request): Promise<Response> {
-    let body: { appId?: string; clientSecret?: string };
-    try {
-      body = (await request.json()) as typeof body;
-    } catch {
-      return jsonResponse({ msg: "invalid request body" }, 400);
-    }
-    const appId = body.appId;
-    if (!appId) return jsonResponse({ msg: "appId required in request body" }, 400);
-
-    this.boundAppId = appId;
-
     const db = createDb(this.env.DB);
-    const [row] = await db
-      .select()
-      .from(bots)
-      .where(eq(bots.appId, appId))
-      .limit(1);
-
-    let secret: string;
-    if (body.clientSecret) {
-      secret = body.clientSecret;
-    } else {
-      if (!row) return jsonResponse({ msg: "bot not found" }, 404);
-      try {
-        secret = decryptSecret(row.secretEnc, this.env.ENCRYPTION_KEY);
-      } catch {
-        return jsonResponse({ msg: "failed to decrypt bot secret" }, 500);
-      }
-    }
-
-    const upstream = await fetch(AUTH_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ appId, clientSecret: secret }),
-    });
-    const respBody = await upstream.text();
-    if (!upstream.ok) {
-      return new Response(respBody, {
-        status: upstream.status,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    try {
-      const authResp = JSON.parse(respBody) as { access_token?: string };
-      if (authResp.access_token) this.accessTokens.add(authResp.access_token);
-    } catch {
-      return new Response(respBody, { status: 502 });
-    }
-    return new Response(respBody, {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    const { response, appId, accessToken } = await proxyAuthRequest(
+      request,
+      db,
+      this.env.ENCRYPTION_KEY,
+    );
+    if (appId) this.boundAppId = appId;
+    if (accessToken) this.accessTokens.add(accessToken);
+    return response;
   }
 
   private handleGateway(request: Request, appId: string): Response {
@@ -266,27 +220,15 @@ export class BotGatewayDO extends DurableObject<Env> {
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
     this.seq.seed(1);
-    server.send(
-      JSON.stringify({
-        op: Op.Hello,
-        d: { heartbeat_interval: HELLO_MS },
-      }),
-    );
+    server.send(buildHelloPayload(HELLO_MS));
     server.serializeAttachment({ identified: false } satisfies WsAttachment);
     return new Response(null, { status: 101, webSocket: client });
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     const attachment = ws.deserializeAttachment() as WsAttachment | null;
-
-    let msg: GatewayPayload;
-    try {
-      msg = JSON.parse(
-        typeof message === "string" ? message : new TextDecoder().decode(message),
-      ) as GatewayPayload;
-    } catch {
-      return;
-    }
+    const msg = parseWsMessage(message);
+    if (!msg) return;
 
     if (!attachment?.identified) {
       await this.handleIdentify(ws, msg);
@@ -294,7 +236,7 @@ export class BotGatewayDO extends DurableObject<Env> {
     }
 
     if (msg.op === Op.Heartbeat) {
-      ws.send(JSON.stringify({ op: Op.HeartbeatACK }));
+      ws.send(buildHeartbeatAck());
       return;
     }
   }
@@ -302,24 +244,14 @@ export class BotGatewayDO extends DurableObject<Env> {
   private async handleIdentify(ws: WebSocket, msg: GatewayPayload): Promise<void> {
     const isResume = msg.op === Op.Resume;
     if (msg.op !== Op.Identify && !isResume) {
-      ws.send(
-        JSON.stringify({
-          op: Op.InvalidSession,
-          d: { reason: "expected Identify (op=2) or Resume (op=6)" },
-        }),
-      );
+      ws.send(buildInvalidSessionPayload("expected Identify (op=2) or Resume (op=6)"));
       ws.close();
       return;
     }
 
     const pathAppId = this.boundAppId;
     if (!pathAppId) {
-      ws.send(
-        JSON.stringify({
-          op: Op.InvalidSession,
-          d: { reason: "bot not registered" },
-        }),
-      );
+      ws.send(buildInvalidSessionPayload("bot not registered"));
       ws.close();
       return;
     }
@@ -329,7 +261,7 @@ export class BotGatewayDO extends DurableObject<Env> {
       await this.authenticateToken(payload.token ?? "", pathAppId);
     } catch (e) {
       const reason = e instanceof Error ? e.message : "auth failed";
-      ws.send(JSON.stringify({ op: Op.InvalidSession, d: { reason } }));
+      ws.send(buildInvalidSessionPayload(reason));
       ws.close();
       return;
     }
@@ -342,43 +274,13 @@ export class BotGatewayDO extends DurableObject<Env> {
       isResume && payload.session_id ? payload.session_id : crypto.randomUUID();
     this.seq.seed(isResume && payload.seq != null ? payload.seq + 1 : 1);
 
-    this.sendReady(ws, pathAppId, shard, sessionId);
-  }
-
-  private sendReady(
-    ws: WebSocket,
-    pathAppId: string,
-    shard: [number, number],
-    sessionId: string,
-  ): void {
-    const username = this.botMeta?.name ?? pathAppId;
-    const userId = this.botMeta?.qq || pathAppId;
-
     ws.send(
-      JSON.stringify({
-        op: Op.Dispatch,
-        t: "READY",
-        s: 1,
-        d: {
-          version: 1,
-          session_id: sessionId,
-          app_id: pathAppId,
-          shard,
-          user: { id: userId, username },
-        },
-      }),
+      buildReadyPayload(pathAppId, shard, sessionId, this.botMeta ?? {}),
     );
     ws.serializeAttachment({
       identified: true,
       sessionId,
     } satisfies WsAttachment);
-  }
-
-  private async verifyAccessToken(accessToken: string): Promise<boolean> {
-    const res = await fetch(UPSTREAM_GATEWAY_BOT, {
-      headers: { Authorization: `QQBot ${accessToken}` },
-    });
-    return res.ok;
   }
 
   private async authenticateToken(token: string, pathAppId: string): Promise<void> {
@@ -387,8 +289,10 @@ export class BotGatewayDO extends DurableObject<Env> {
       const accessToken = trimmed.slice("QQBot ".length).trim();
       if (!accessToken) throw new Error("empty access_token");
       if (!this.accessTokens.has(accessToken)) {
-        const ok = await this.verifyAccessToken(accessToken);
-        if (!ok) throw new Error("invalid access_token");
+        const res = await fetch(UPSTREAM_GATEWAY_BOT, {
+          headers: { Authorization: `QQBot ${accessToken}` },
+        });
+        if (!res.ok) throw new Error("invalid access_token");
         this.accessTokens.add(accessToken);
       }
       return;
