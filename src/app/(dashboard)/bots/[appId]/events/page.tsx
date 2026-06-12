@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventsTable } from "@/components/events-table";
-import { getOwnedBot } from "@/lib/auth/get-bot";
+import { requireBotOwnership } from "@/lib/auth/session";
 
 type Props = { params: Promise<{ appId: string }> };
 
 export default async function BotEventsPage({ params }: Props) {
   const { appId } = await params;
-  const bot = await getOwnedBot(appId);
-  if (!bot) notFound();
+  const result = await requireBotOwnership(appId);
+  if (!result.ok) notFound();
+  const { bot } = result;
 
   return (
     <div>

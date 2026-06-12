@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getOwnedBot } from "@/lib/auth/get-bot";
+import { requireBotOwnership } from "@/lib/auth/session";
 import { CopyButton } from "@/components/copy-button";
 import { Button } from "@/components/ui/button";
 import { botUrls } from "@/lib/utils";
@@ -9,8 +9,9 @@ type Props = { params: Promise<{ appId: string }> };
 
 export default async function BotDetailPage({ params }: Props) {
   const { appId } = await params;
-  const bot = await getOwnedBot(appId);
-  if (!bot) notFound();
+  const result = await requireBotOwnership(appId);
+  if (!result.ok) notFound();
+  const { bot } = result;
 
   const urls = botUrls(bot.appId);
   return (
