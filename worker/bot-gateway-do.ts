@@ -8,7 +8,7 @@ import {
   processWebhookPayload,
 } from "../src/lib/gateway/core/webhook-process";
 import { GatewaySeq, buildDispatch } from "../src/lib/gateway/core/gateway-seq";
-import { resolveGatewayWsUrl } from "../src/lib/gateway/core/gateway-url";
+import { resolveGatewayWsUrl } from "../src/lib/gateway/gateway-url";
 import { fetchAccessToken } from "../src/lib/gateway/token-manager";
 import {
   Op,
