@@ -3,9 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { EventRow } from "@/types/dashboard";
 
-/** @deprecated Use EventRow from @/types/dashboard instead */
-export type LiveGatewayEvent = EventRow;
-
 const OP_DISPATCH = 0;
 const OP_HEARTBEAT = 1;
 const OP_IDENTIFY = 2;

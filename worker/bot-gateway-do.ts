@@ -9,6 +9,7 @@ import {
 } from "../src/lib/gateway/core/webhook-process";
 import { GatewaySeq, buildDispatch } from "../src/lib/gateway/core/gateway-seq";
 import { resolveGatewayWsUrl } from "../src/lib/gateway/gateway-url";
+import { QQ_UPSTREAM_GATEWAY_BOT } from "../src/lib/gateway/constants";
 import { fetchAccessToken } from "../src/lib/gateway/token/manager";
 import { Op, type GatewayPayload, type IdentifyPayload, type ResumePayload } from "../src/lib/gateway/ws-protocol";
 import type { BotSigningMaterial } from "../src/lib/gateway/core/types";
@@ -24,7 +25,6 @@ import {
 import { proxyAuthRequest } from "./auth-proxy";
 
 const HELLO_MS = 30_000;
-const UPSTREAM_GATEWAY_BOT = "https://api.sgroup.qq.com/gateway/bot";
 const APP_ID_HEADER = "X-Bot-App-Id";
 
 function parseAppIdFromPath(pathname: string): string | null {
@@ -194,7 +194,7 @@ export class BotGatewayDO extends DurableObject<Env> {
       if (token) this.accessTokens.add(token);
     }
 
-    const upstream = await fetch(UPSTREAM_GATEWAY_BOT, {
+    const upstream = await fetch(QQ_UPSTREAM_GATEWAY_BOT, {
       headers: { Authorization: auth },
     });
     const text = await upstream.text();
@@ -289,7 +289,7 @@ export class BotGatewayDO extends DurableObject<Env> {
       const accessToken = trimmed.slice("QQBot ".length).trim();
       if (!accessToken) throw new Error("empty access_token");
       if (!this.accessTokens.has(accessToken)) {
-        const res = await fetch(UPSTREAM_GATEWAY_BOT, {
+        const res = await fetch(QQ_UPSTREAM_GATEWAY_BOT, {
           headers: { Authorization: `QQBot ${accessToken}` },
         });
         if (!res.ok) throw new Error("invalid access_token");

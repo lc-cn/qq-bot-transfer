@@ -1,13 +1,3 @@
-/** Build WSS URL from explicit host/proto (used client-side in botUrls) */
-export function buildGatewayWsUrl(
-  host: string,
-  proto: string,
-  appId: string,
-): string {
-  const wsProto = proto === "https" ? "wss" : "ws";
-  return `${wsProto}://${host}/websocket/${encodeURIComponent(appId)}`;
-}
-
 /** Resolve WSS URL from server-side env vars with fallback chain */
 export function resolveGatewayWsUrl(
   appId: string,

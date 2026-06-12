@@ -1,10 +1,10 @@
-const AUTH_URL = "https://bots.qq.com/app/getAppAccessToken";
+import { QQ_AUTH_URL } from "../constants";
 
 export async function fetchAccessToken(
   appId: string,
   secret: string,
 ): Promise<{ accessToken: string; expiresIn: number }> {
-  const res = await fetch(AUTH_URL, {
+  const res = await fetch(QQ_AUTH_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ appId, clientSecret: secret }),

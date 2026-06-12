@@ -22,6 +22,7 @@ export type Env = {
   BOT_GATEWAY: DurableObjectNamespace;
   EVENT_QUEUE: Queue<EventQueueMessage>;
   ASSETS: Fetcher;
+  WORKER_SELF_REFERENCE?: Fetcher;
   PUBLIC_URL: string;
   GATEWAY_WS_URL: string;
   AUTH_SECRET: string;

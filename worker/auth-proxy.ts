@@ -1,9 +1,8 @@
 import { eq } from "drizzle-orm";
 import { decryptSecret } from "../src/lib/crypto/secrets";
+import { QQ_AUTH_URL } from "../src/lib/gateway/constants";
 import { bots } from "@drizzle/schema";
 import type { AppDatabase } from "../src/lib/db/drizzle";
-
-const AUTH_URL = "https://bots.qq.com/app/getAppAccessToken";
 
 function jsonResponse(data: unknown, status = 200): Response {
   return Response.json(data, { status });
@@ -56,7 +55,7 @@ export async function proxyAuthRequest(
     }
   }
 
-  const upstream = await fetch(AUTH_URL, {
+  const upstream = await fetch(QQ_AUTH_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ appId, clientSecret: secret }),

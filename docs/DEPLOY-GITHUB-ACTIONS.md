@@ -88,9 +88,3 @@ pnpm exec wrangler secret put ENCRYPTION_KEY
 
 - Worker 已更新；若改的是 Bot 客户端逻辑，需重启本地 QQ Bot SDK
 - Durable Object 实例可能仍持有旧连接，WS 断线重连后会走新代码
-
----
-
-## Legacy：VPS + 1Panel
-
-旧版 SSH 部署说明见 [DEPLOY-VPS-NODE.md](./DEPLOY-VPS-NODE.md)。当前推荐 Cloudflare 单体部署。

@@ -1,4 +1,3 @@
-import type { IncomingMessage } from "node:http";
 import type { NextRequest } from "next/server";
 
 export function firstHeader(
@@ -58,24 +57,4 @@ export function forwardedFromHeaders(headers: {
   const hp = resolveHostProto((n) => headers.get(n));
   if (!hp) throw new Error("missing Host header");
   return hp;
-}
-
-/** 让 Auth.js / Next 在反代后识别正确的 host 与 https */
-export function ensureForwardedHeaders(
-  req: IncomingMessage,
-  fallback: URL,
-): void {
-  if (!req.headers["x-forwarded-host"]) {
-    req.headers["x-forwarded-host"] =
-      firstHeader(req.headers.host) ?? fallback.host;
-  }
-  if (!req.headers["x-forwarded-proto"]) {
-    const host =
-      firstHeader(req.headers["x-forwarded-host"]) ??
-      firstHeader(req.headers.host) ??
-      "";
-    req.headers["x-forwarded-proto"] = isLocalHost(host)
-      ? fallback.protocol.replace(":", "")
-      : "https";
-  }
 }

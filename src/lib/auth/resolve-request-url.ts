@@ -1,10 +1,8 @@
 import { NextRequest } from "next/server";
 import { isLocalHost, originFromRequest } from "@/lib/http-origin";
 
-export { originFromRequest };
-
 /** ngrok 到本地时 req.nextUrl 常为 localhost，需按 Host 头重建 */
-export function rebuildRequestFromForwardedHeaders(req: NextRequest): NextRequest {
+function rebuildRequestFromForwardedHeaders(req: NextRequest): NextRequest {
   const origin = originFromRequest(req);
   const { pathname, search } = req.nextUrl;
   const href = `${origin}${pathname}${search}`;
