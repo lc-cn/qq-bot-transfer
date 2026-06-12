@@ -166,10 +166,6 @@ pnpm run deploy   # build + D1 migrate + deploy
 
 完整步骤：[docs/DEPLOY-CLOUDFLARE.md](docs/DEPLOY-CLOUDFLARE.md)
 
-### Legacy：VPS Node
-
-旧版 1Panel + Postgres 部署见 [docs/DEPLOY-VPS-NODE.md](docs/DEPLOY-VPS-NODE.md)（已不再推荐）。
-
 ---
 
 ## 本地开发
@@ -226,9 +222,11 @@ openssl rand -hex 32
 ## 常用命令
 
 ```bash
-pnpm run dev          # wrangler dev（仅 Worker 路由）
-pnpm run preview      # OpenNext + wrangler dev（完整应用）
+pnpm run dev          # wrangler dev（完整本地环境）
 pnpm run typecheck    # TypeScript 检查
+pnpm run test         # 运行测试
+pnpm run test:watch   # 测试监听模式
+pnpm run test:coverage # 测试覆盖率报告
 pnpm run build:cf     # 构建 Cloudflare bundle
 pnpm run deploy       # 构建并部署
 pnpm run db:migrate:local   # 本地 D1 迁移
@@ -241,10 +239,10 @@ pnpm run db:migrate:remote  # 生产 D1 迁移
 
 | 文档 | 内容 |
 |------|------|
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 开发者入门、架构、本地开发、测试 |
 | [docs/DEPLOY-CLOUDFLARE.md](docs/DEPLOY-CLOUDFLARE.md) | Cloudflare 首次部署、Secrets、验证清单 |
 | [docs/DEPLOY-GITHUB-ACTIONS.md](docs/DEPLOY-GITHUB-ACTIONS.md) | CI/CD 自动部署 |
 | [docs/GATEWAY-QQ-ALIGNMENT.md](docs/GATEWAY-QQ-ALIGNMENT.md) | 与 QQ 官方 WebSocket 协议对照 |
-| [docs/DEPLOY-VPS-NODE.md](docs/DEPLOY-VPS-NODE.md) | Legacy VPS 部署 |
 
 ## License
 
