@@ -4,13 +4,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { BotRow } from "@/types/dashboard";
 
-export type BotRow = {
-  id: string;
-  name: string;
-  qq: string;
-  appId: string;
-};
+export type { BotRow };
 
 type Props = {
   open: boolean;

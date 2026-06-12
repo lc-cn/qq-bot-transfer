@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BotDialog, type BotRow } from "@/components/bot-dialog";
+import { BotDialog } from "@/components/bot-dialog";
+import type { BotRow } from "@/types/dashboard";
 import { CopyButton } from "@/components/copy-button";
 import { Button } from "@/components/ui/button";
 import { botUrls } from "@/lib/utils";

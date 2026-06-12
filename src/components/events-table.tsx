@@ -2,18 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  useBotGatewayWs,
-  type LiveGatewayEvent,
-} from "@/hooks/use-bot-gateway-ws";
-
-type EventRow = {
-  id: string;
-  op: number | null;
-  eventType: string | null;
-  payload: unknown;
-  receivedAt: string;
-};
+import { useBotGatewayWs } from "@/hooks/use-bot-gateway-ws";
+import type { EventRow } from "@/types/dashboard";
 
 const LIVE_MAX_ITEMS = 200;
 
@@ -34,7 +24,7 @@ export function EventsTable({ appId }: { appId: string }) {
   }, []);
 
   const onGatewayEvent = useCallback(
-    (ev: LiveGatewayEvent) => prependEvent(ev),
+    (ev: EventRow) => prependEvent(ev),
     [prependEvent],
   );
 

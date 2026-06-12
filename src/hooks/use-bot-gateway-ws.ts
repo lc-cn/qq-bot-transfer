@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { EventRow } from "@/types/dashboard";
 
-export type LiveGatewayEvent = {
-  id: string;
-  op: number | null;
-  eventType: string | null;
-  payload: unknown;
-  receivedAt: string;
-};
+/** @deprecated Use EventRow from @/types/dashboard instead */
+export type LiveGatewayEvent = EventRow;
 
 const OP_DISPATCH = 0;
 const OP_HEARTBEAT = 1;
@@ -25,7 +21,7 @@ type WsMessage = {
   id?: string;
 };
 
-function toEventRow(msg: WsMessage): LiveGatewayEvent | null {
+function toEventRow(msg: WsMessage): EventRow | null {
   if (msg.op !== OP_DISPATCH || !msg.t || msg.t === "READY") return null;
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -39,7 +35,7 @@ function toEventRow(msg: WsMessage): LiveGatewayEvent | null {
 export function useBotGatewayWs(
   appId: string,
   enabled: boolean,
-  onEvent: (event: LiveGatewayEvent) => void,
+  onEvent: (event: EventRow) => void,
 ) {
   const [status, setStatus] = useState<
     "idle" | "connecting" | "connected" | "error"
