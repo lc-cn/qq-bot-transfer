@@ -5,7 +5,7 @@ import { encryptSecret } from "@/lib/crypto/secrets";
 import { getDb } from "@/lib/db";
 import { requireBotOwnership } from "@/lib/auth/session";
 import { botUpdateSchema } from "@/lib/validators/bot";
-import { invalidateDoBot } from "@/lib/gateway/do-client";
+import { invalidateDoBot } from "@/lib/gateway/token";
 import { bots } from "@drizzle/schema";
 
 type Params = { params: Promise<{ appId: string }> };

@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { forwardedFromHeaders } from "@/lib/http-origin";
 import { requireBotOwnership } from "@/lib/auth/session";
-import { ensureBotAccessToken } from "@/lib/gateway/ensure-access-token";
+import { ensureBotAccessToken } from "@/lib/gateway/token";
 import { resolveGatewayWsUrl } from "@/lib/gateway/gateway-url";
 
 type Params = { params: Promise<{ appId: string }> };

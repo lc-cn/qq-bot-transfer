@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { getHealthResponse } from "@/lib/gateway/health";
 
 export async function GET(request: Request) {
-  const result = getHealthResponse(request.headers.get("x-health-key"));
-  if (result.status === 403) {
+  const healthKey = process.env.HEALTH_KEY;
+  if (healthKey && request.headers.get("x-health-key") !== healthKey) {
     return new NextResponse(null, { status: 403 });
   }
-  return NextResponse.json(result.body);
+  return NextResponse.json({ status: "ok" });
 }
