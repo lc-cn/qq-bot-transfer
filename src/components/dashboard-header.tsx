@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { auth, signOut } from "@/auth";
-import { Button } from "@/components/ui/button";
+import { auth } from "@/auth";
+import { SignOutButton } from "@/components/sign-out-button";
 
 export async function DashboardHeader() {
   const session = await auth();
@@ -13,17 +13,14 @@ export async function DashboardHeader() {
           QQ Bot 网关
         </Link>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-zinc-600">{display}</span>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
+          <Link
+            href="/guide"
+            className="text-sm text-zinc-600 hover:text-zinc-900"
           >
-            <Button type="submit" variant="outline" size="sm">
-              退出
-            </Button>
-          </form>
+            接入指引
+          </Link>
+          <span className="text-sm text-zinc-600">{display}</span>
+          <SignOutButton />
         </div>
       </div>
     </header>
