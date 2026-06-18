@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { auth } from "@/auth";
 import { getAuthCsrfToken } from "@/lib/auth/csrf";
 import { normalizeCallbackUrl } from "@/lib/auth/resolve-request-url";
@@ -68,12 +69,10 @@ export default async function LoginPage({ searchParams }: Props) {
             使用 GitHub 登录
           </Button>
         </form>
-        <p className="mt-4 text-xs text-zinc-400">
-          在 GitHub OAuth App 中配置的回调地址须为：
-          <code className="block break-all">
-            {publicOrigin}
-            /api/auth/callback/github
-          </code>
+        <p className="mt-4 text-center text-sm">
+          <Link href="/guide" className="text-zinc-600 underline hover:text-zinc-900">
+            首次使用？查看接入指引
+          </Link>
         </p>
       </div>
     </div>

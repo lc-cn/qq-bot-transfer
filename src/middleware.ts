@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { originFromRequest } from "@/lib/http-origin";
 
-const PUBLIC_PREFIXES = ["/login", "/api/auth"];
+const PUBLIC_PREFIXES = ["/login", "/guide", "/api/auth"];
 
 /** QQ SDK / 开放平台回调，由 Worker 网关处理，无需 Dashboard 登录 */
 const GATEWAY_PREFIXES = [
