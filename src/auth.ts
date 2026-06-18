@@ -55,6 +55,7 @@ export const authConfig = {
   session: {
     strategy: "jwt",
   },
+  useSecureCookies: false,
   trustHost: true,
   callbacks: {
     async redirect({ url, baseUrl }) {
