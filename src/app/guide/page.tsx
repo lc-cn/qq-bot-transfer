@@ -1,7 +1,11 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { CopyButton } from "@/components/copy-button";
-import { guideEndpoints } from "@/lib/guide-urls";
+import {
+  guideEndpoints,
+  qqOfficialBotEnvExample,
+  qqOfficialBotExample,
+} from "@/lib/guide-urls";
 import { originFromHeaderGet } from "@/lib/http-origin";
 
 function Section({
@@ -68,12 +72,15 @@ export default async function GuidePage() {
   const urls = guideEndpoints(origin);
   const appId = "YOUR_APP_ID";
 
+  const botExample = qqOfficialBotExample(origin, appId);
+  const envExample = qqOfficialBotEnvExample(origin, appId);
+
   const toc = [
     { id: "overview", label: "概览" },
     { id: "login", label: "1. 登录" },
     { id: "create-bot", label: "2. 创建 Bot" },
     { id: "qq-platform", label: "3. QQ 开放平台" },
-    { id: "sdk", label: "4. SDK 接入" },
+    { id: "qq-official-bot", label: "4. 配置 qq-official-bot" },
     { id: "verify", label: "验证" },
     { id: "faq", label: "FAQ" },
   ];
@@ -86,8 +93,17 @@ export default async function GuidePage() {
           接入指引
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-zinc-500">
-          将 QQ 机器人 Webhook 事件通过 WebSocket 转发到你的程序。
-          以下地址基于当前域名{" "}
+          使用{" "}
+          <a
+            href="https://zhinjs.github.io/qq-official-bot/"
+            className="font-medium text-zinc-800 underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            qq-official-bot
+          </a>{" "}
+          接入本网关：QQ 平台 Webhook → 网关转发 → 你的 Node 程序 WebSocket 收事件。
+          以下地址基于{" "}
           <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs text-zinc-700">
             {origin}
           </code>
@@ -212,39 +228,144 @@ export default async function GuidePage() {
             </div>
           </Section>
 
-          <Section id="sdk" title="4. SDK / 客户端接入">
-            <p>将 SDK 的 HTTP 基址指向本网关的端点地址：</p>
-            <div className="space-y-2">
-              <UrlCard label="获取 Token" url={urls.auth} />
-              <UrlCard label="获取 WebSocket 地址（含分片信息）" url={urls.gatewayBot} />
-              <UrlCard label="WebSocket 直连" url={urls.websocket} />
+          <Section id="qq-official-bot" title="4. 配置 qq-official-bot">
+            <p>
+              推荐用{" "}
+              <a
+                href="https://www.npmjs.com/package/qq-official-bot"
+                className="underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                qq-official-bot
+              </a>{" "}
+              作为客户端 SDK。安装后只需改两个网关地址，即可从 WebSocket 收事件（无需在本地再起 Webhook 服务）。
+            </p>
+
+            <CodeBlock>{`npm install qq-official-bot
+# 或
+pnpm add qq-official-bot`}</CodeBlock>
+
+            <p className="font-medium text-zinc-800">关键配置项</p>
+            <p className="text-xs text-zinc-500">
+              WebSocket 模式通过 <code className="font-mono">accessTokenUrl</code> 和{" "}
+              <code className="font-mono">gatewayUrl</code> 覆盖默认官方地址。详见{" "}
+              <a
+                href="https://zhinjs.github.io/qq-official-bot/config.html"
+                className="underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                qq-official-bot 配置文档
+              </a>
+              。
+            </p>
+
+            <div className="overflow-hidden rounded-lg border border-zinc-200">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-zinc-50 text-zinc-500">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Bot 字段</th>
+                    <th className="px-3 py-2 font-medium">本网关地址</th>
+                    <th className="px-3 py-2 font-medium">说明</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 bg-white text-zinc-700">
+                  <tr>
+                    <td className="px-3 py-2 font-mono">accessTokenUrl</td>
+                    <td className="px-3 py-2">
+                      <code className="break-all font-mono">{urls.auth}</code>
+                    </td>
+                    <td className="px-3 py-2 text-zinc-500">
+                      完整 URL；POST body 仍为{" "}
+                      <code className="font-mono">{`{ appId, clientSecret }`}</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-mono">gatewayUrl</td>
+                    <td className="px-3 py-2">
+                      <code className="break-all font-mono">{urls.gatewayBot}</code>
+                    </td>
+                    <td className="px-3 py-2 text-zinc-500">
+                      须含 <code className="font-mono">appId</code>；响应里的{" "}
+                      <code className="font-mono">url</code> 即 WebSocket 地址
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-mono">appid / secret</td>
+                    <td className="px-3 py-2 text-zinc-500">—</td>
+                    <td className="px-3 py-2 text-zinc-500">
+                      与 QQ 开放平台一致；<code className="font-mono">secret</code> 勿提交 git
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-mono">mode</td>
+                    <td className="px-3 py-2 font-mono">ReceiverMode.WEBSOCKET</td>
+                    <td className="px-3 py-2 text-zinc-500">
+                      收事件走 WebSocket；QQ 平台 Webhook 仍配在网关（上一步）
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <p className="text-xs text-zinc-500">SDK 接入流程：</p>
+            <div className="space-y-2">
+              <UrlCard label="accessTokenUrl" url={urls.auth} />
+              <UrlCard label="gatewayUrl（含 appId）" url={urls.gatewayBot} />
+            </div>
+
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-900">
+              <strong>注意：</strong>本网关是多租户路由，{" "}
+              <code className="font-mono">gatewayUrl</code> 必须是{" "}
+              <code className="font-mono">/gateway/bot/YOUR_APP_ID</code>，不能只写{" "}
+              <code className="font-mono">/gateway/bot</code>。将{" "}
+              <code className="font-mono">YOUR_APP_ID</code> 换成你的 App ID。
+            </div>
+
+            <p className="font-medium text-zinc-800">完整示例</p>
+            <CodeBlock>{botExample}</CodeBlock>
+            <div className="flex justify-end">
+              <CopyButton text={botExample} label="复制代码" />
+            </div>
+
+            <p className="font-medium text-zinc-800">推荐 .env</p>
+            <CodeBlock>{envExample}</CodeBlock>
+            <div className="flex justify-end">
+              <CopyButton text={envExample} label="复制 .env" />
+            </div>
+
+            <p className="text-xs text-zinc-500">SDK 内部连接流程：</p>
             <ol className="ml-5 list-decimal space-y-1.5 text-xs text-zinc-600">
-              <li><code className="font-mono">POST /app/getAppAccessToken</code> 换取 access_token</li>
-              <li><code className="font-mono">GET /gateway/bot/{`{appId}`}</code> 获取 WebSocket URL</li>
-              <li>连接 WebSocket，发送 <code className="font-mono">Identify (op=2)</code>，token 格式为 <code className="font-mono">QQBot {"{access_token}"}</code></li>
-              <li>收到 <code className="font-mono">READY (op=0, t=&quot;READY&quot;)</code> 后等待事件推送</li>
+              <li>
+                <code className="font-mono">POST accessTokenUrl</code> 换取 access_token
+              </li>
+              <li>
+                <code className="font-mono">GET gatewayUrl</code> 取 WebSocket 接入点
+              </li>
+              <li>自动连接 WebSocket，Identify 后收到 READY，开始收事件</li>
             </ol>
 
-            <p className="pt-2 text-xs text-zinc-500">TypeScript 配置示例：</p>
-            <CodeBlock>{`const BASE = "${urls.origin}";
-const APP_ID = "YOUR_APP_ID";
-const AUTH = \`\${BASE}/app/getAppAccessToken\`;   // 换 token
-const WS = \`${urls.websocket}\`;                    // 直接连 WebSocket`}</CodeBlock>
-            <div className="flex justify-end">
-              <CopyButton text={`const BASE = "${urls.origin}";\nconst APP_ID = "YOUR_APP_ID";\nconst AUTH = \`\${BASE}/app/getAppAccessToken\`;\nconst WS = \`${urls.websocket}\`;`} label="复制代码" />
-            </div>
+            <p className="text-xs text-zinc-500">
+              群机器人常用 intents：<code className="font-mono">GROUP_AND_C2C_EVENT</code>、
+              <code className="font-mono">GROUP_MEMBER</code>；频道机器人见{" "}
+              <a
+                href="https://zhinjs.github.io/qq-official-bot/config.html"
+                className="underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                官方 intents 列表
+              </a>
+              。启动后执行 <code className="font-mono">bot.start()</code>，日志出现 READY 即表示接通。
+            </p>
 
             <details className="rounded-lg border border-zinc-200 bg-white">
               <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-zinc-700 hover:text-zinc-900">
-                协议差异说明
+                协议差异 / 断线重连
               </summary>
               <div className="border-t border-zinc-100 px-4 pb-3 pt-2 text-xs text-zinc-500">
                 <p>
-                  本网关 WebSocket 协议与 QQ 官方网关基本一致（Hello → Identify → READY → Heartbeat → Dispatch）。
-                  主要差异见{" "}
+                  本网关 WebSocket 与 QQ 官方基本一致，差异见{" "}
                   <a
                     href="https://github.com/lc-cn/qq-bot-transfer/blob/master/docs/GATEWAY-QQ-ALIGNMENT.md"
                     className="underline"
@@ -253,7 +374,8 @@ const WS = \`${urls.websocket}\`;                    // 直接连 WebSocket`}</C
                   >
                     GATEWAY-QQ-ALIGNMENT.md
                   </a>
-                  。支持 Resume (op=6) 断线重连。
+                  。qq-official-bot 断线后会自动 Resume 重连；若报「无效的会话」，重启{" "}
+                  <code className="font-mono">bot.start()</code> 即可。
                 </p>
               </div>
             </details>
@@ -267,8 +389,8 @@ const WS = \`${urls.websocket}\`;                    // 直接连 WebSocket`}</C
             {[
               ["健康检查", <>运行 <code className="font-mono text-xs">curl {urls.health}</code> 返回 200</>],
               ["登录", "Dashboard 能使用 GitHub 登录并创建 Bot"],
-              ["连接", "客户端日志出现 READY（op=0, t=READY）"],
-              ["事件", "群内 @ 机器人后收到 GROUP_AT_MESSAGE_CREATE"],
+              ["连接", "qq-official-bot 日志出现 READY"],
+              ["事件", "群内 @ 机器人后 bot.on('message') 收到消息"],
               ["记录", "Dashboard 事件页有 Webhook 历史记录"],
             ].map(([label, desc]) => (
               <li key={label as string} className="flex items-start gap-3">
@@ -292,8 +414,12 @@ const WS = \`${urls.websocket}\`;                    // 直接连 WebSocket`}</C
                 "检查 AUTH_GITHUB_ID 和 AUTH_GITHUB_SECRET 是否正确，GitHub OAuth Callback 与上方的绝对一致（含 https）。",
               ],
               [
+                "gatewayUrl 填了 /gateway/bot 连不上？",
+                "本网关必须在路径末尾带上 appId，例如 gatewayUrl 设为上方的 /gateway/bot/YOUR_APP_ID，不能只写官方默认的 /gateway/bot。",
+              ],
+              [
                 "WebSocket 断线后「无效的会话」？",
-                "检查 access_token 是否过期。网关支持 Resume (op=6) 重连，SDK 应能自动恢复。",
+                "重启 bot.start()；qq-official-bot 会尝试 Resume 重连。确认 accessTokenUrl / gatewayUrl 指向本网关。",
               ],
               [
                 "getAppAccessToken 返回错误？",
