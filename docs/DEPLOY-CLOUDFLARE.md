@@ -14,7 +14,7 @@
 pnpm exec wrangler d1 create qq-bot-transfer
 ```
 
-将输出中的 `database_id` 写入 `wrangler.toml` 的 `[[d1_databases]].database_id`（替换占位 UUID）。
+将输出中的 `database_id` 写入 `wrangler.jsonc` 的 `d1_databases[0].database_id`（替换占位 UUID）。
 
 ## 2. 应用迁移
 
@@ -25,7 +25,7 @@ pnpm run db:migrate:remote  # 生产 D1
 
 ## 3. Secrets / Vars
 
-`wrangler.toml` 已配置 `[vars]`（PUBLIC_URL、GATEWAY_WS_URL 等）。敏感项用 secrets：
+`wrangler.jsonc` 已配置 `[vars]`（PUBLIC_URL、GATEWAY_WS_URL 等）。敏感项用 secrets：
 
 ```bash
 pnpm exec wrangler secret put AUTH_SECRET
@@ -87,7 +87,7 @@ pnpm run deploy   # build + D1 migrate + deploy
 pnpm exec wrangler queues create event-persist
 ```
 
-`wrangler.toml` 中 DO 迁移须用 `new_sqlite_classes`（Free plan）。Worker 入口为 `worker/index.ts`（custom worker：网关 → DO，其余 → OpenNext）。
+`wrangler.jsonc` 中 DO 迁移须用 `new_sqlite_classes`（Free plan）。Worker 入口为 `worker/index.ts`（custom worker：网关 → DO，其余 → OpenNext）。
 
 当前已部署至 `https://qq-bot-transfer.zhin.workers.dev`，绑定 `bots.l2cl.link` 请在 Cloudflare Dashboard → Workers → Custom Domains 中配置。
 

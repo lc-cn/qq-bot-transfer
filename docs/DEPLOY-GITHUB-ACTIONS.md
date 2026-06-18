@@ -49,7 +49,7 @@ Account Resources 选 **admin@liucl.dev**（或你的账号）。
 |--------|------|
 | `CLOUDFLARE_API_TOKEN` | 上一步创建的 Token 全文 |
 
-`account_id` 已写在 `wrangler.toml`，无需再配 `CLOUDFLARE_ACCOUNT_ID`。
+`account_id` 无需写在配置里；`wrangler.jsonc` 中 `services[0].service` 须与 `name` 一致。
 
 ### 3. 确认 Cloudflare Secrets 已就绪
 
@@ -81,7 +81,7 @@ pnpm exec wrangler secret put ENCRYPTION_KEY
 
 ### migrate 失败
 
-- 确认 `wrangler.toml` 里 `database_id` 与生产 D1 一致
+- 确认 `wrangler.jsonc` 里 `database_id` 与生产 D1 一致
 - 本地 `pnpm run db:migrate:remote` 复现并修复 SQL
 
 ### 部署成功但行为未变
